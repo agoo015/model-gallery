@@ -1,0 +1,225 @@
+<!DOCTYPE html><html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模型展示 | 普拉Hero</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", sans-serif;
+      background-color: #111;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      transition: background 1s;
+    }
+    header {
+      background-color: #222;
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid #444;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: 0.1rem;
+    }
+    main {
+      padding: 2rem;
+    }
+    .upload-section {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .upload-section input[type="file"], .upload-section input[type="text"], .upload-section select {
+      margin-top: 0.5rem;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0.5rem;
+      background-color: #333;
+      color: #eee;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background-color: #222;
+      border: 1px solid #444;
+      border-radius: 8px;
+      overflow: hidden;
+      text-align: center;
+      position: relative;
+    }
+    .card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .card h3, .card p {
+      margin: 0.5rem;
+      font-size: 1rem;
+    }
+    .card button {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: #c00;
+      border: none;
+      color: white;
+      padding: 2px 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .quote {
+      text-align: center;
+      font-style: italic;
+      color: #bbb;
+      margin-top: 2rem;
+    }
+    footer {
+      text-align: center;
+      font-size: 0.9rem;
+      padding: 1rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>普拉Hero模型展示室</h1>
+  </header>
+  <main>
+    <div class="upload-section">
+      <h2>上傳你的模型照片</h2>
+      <input type="file" accept="image/*" onchange="previewImage(event)">
+      <input type="text" id="modelTitle" placeholder="請輸入模型名稱">
+      <input type="text" id="modelNote" placeholder="備註（可選）">
+      <select id="modelCategory">
+        <option value="全部">請選擇分類</option>
+        <option value="HG">HG</option>
+        <option value="RG">RG</option>
+        <option value="MG">MG</option>
+        <option value="黏土人">黏土人</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div style="text-align:center; margin-bottom: 1rem;">
+      <label style="margin-right: 10px;">分類過濾：</label>
+      <select onchange="filterCategory(this.value)">
+        <option value="全部">全部</option>
+        <option value="HG">HG</option>
+        <option value="RG">RG</option>
+        <option value="MG">MG</option>
+        <option value="黏土人">黏土人</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+    <div class="gallery" id="gallery"></div>
+    <div class="quote" id="quote"></div>
+  </main>
+  <footer>
+    Made with coffee and plastic crack. 最後的浪漫，是預購單。
+  </footer>
+  <script>
+    const gallery = document.getElementById('gallery');
+    const quote = document.getElementById('quote');const quotes = [
+  '「不論是健康或是生病的時候，我們都要命運與共。」 — 祥子',
+  '「將一生交給你，才是你組樂隊的理由吧？」 — 若麥',
+  '「如果是用詩的話，心意一定就能傳達出去的。」 — 初華',
+  '「妳將會變得真材實料。」 — 海鈴',
+  '「在這個世界裡，我們永遠都不會孤單。」 — 睦'
+];
+
+function loadSavedModels() {
+  const saved = localStorage.getItem('models');
+  if (saved) {
+    const models = JSON.parse(saved);
+    models.forEach(model => {
+      createCard(model.image, model.title, model.note, model.category, model.date);
+    });
+  }
+}
+
+function saveModels() {
+  const cards = document.querySelectorAll('.card');
+  const models = Array.from(cards).map(card => ({
+    image: card.querySelector('img').src,
+    title: card.querySelector('h3').textContent,
+    note: card.querySelector('p.note')?.textContent || '',
+    category: card.getAttribute('data-category'),
+    date: card.querySelector('p.date')?.textContent || ''
+  }));
+  localStorage.setItem('models', JSON.stringify(models));
+}
+
+function createCard(imgSrc, title, note, category, date) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.setAttribute('data-category', category);
+  card.innerHTML = `
+    <img src="${imgSrc}" alt="Uploaded Model">
+    <h3>${title}</h3>
+    <p class="note">${note}</p>
+    <p class="date">${date}</p>
+    <button onclick="this.parentElement.remove(); saveModels();">刪除</button>
+  `;
+  gallery.prepend(card);
+}
+
+function previewImage(event) {
+  const file = event.target.files[0];
+  const titleInput = document.getElementById('modelTitle');
+  const noteInput = document.getElementById('modelNote');
+  const categorySelect = document.getElementById('modelCategory');
+
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const title = titleInput.value || '新模型';
+    const note = noteInput.value || '';
+    const category = categorySelect.value || '其他';
+    const date = new Date().toLocaleDateString();
+
+    createCard(e.target.result, title, note, category, date);
+    saveModels();
+
+    titleInput.value = '';
+    noteInput.value = '';
+    categorySelect.selectedIndex = 0;
+  };
+  reader.readAsDataURL(file);
+}
+
+function filterCategory(category) {
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    if (category === '全部' || card.getAttribute('data-category') === category) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function applyNightModeEffect() {
+  const hour = new Date().getHours();
+  if (hour >= 22 || hour < 6) {
+    document.body.style.background = "radial-gradient(ellipse at center, #111 0%, #000 100%)";
+    quote.textContent = '「不論是健康或是生病的時候，我們都要命運與共。」 — 祥子';
+  } else {
+    quote.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+  }
+}
+
+loadSavedModels();
+applyNightModeEffect();
+
+  </script>
+</body>
+</html>
